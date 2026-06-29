@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 
 
 // create user//
-const createUser = async (name, email, password) => {
+export const createUser = async (name, email, password) => {
   const result = await pool.query(
     `INSERT INTO createProfile(name , email , password)
     VALUES($1 ,$2 , $3)
@@ -11,8 +11,4 @@ const createUser = async (name, email, password) => {
     [name, email, password]
   )
   return result.rows[0]
-}
-
-module.exports = {
-  createUser
 }
