@@ -1,20 +1,23 @@
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
+import router from "./routes/userRoutes.js";
 
-import userRoutes from "./routes/userRoutes.js";
 
 dotenv.config();
 
-const app = express();
+// Server instance
+const myAuthentication = express();
 
-app.use(cors());
-app.use(express.json());
+// Port
+const port = process.env.PORT;
 
-app.use("/api/users", userRoutes);
+// Middleware
+myAuthentication.use(express.json());
 
-const PORT = process.env.PORT || 5000;
+// Routes
+myAuthentication.use("/api/auth", router);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Listen
+myAuthentication.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
