@@ -7,13 +7,17 @@ const PASSWORD_REGEX =
 export const userRegister = async (req, res) => {
   try {
     const {
-      name = "",
+      name: fullName = "",
       email = "",
       password = "",
     } = req.body;
 
+    // Clean user input
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
     // Validate required fields
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!cleanName || !cleanEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Please fill in all fields.",
@@ -25,12 +29,12 @@ export const userRegister = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "Password must be at least 8 characters long and contain an uppercase letter, lowercase letter, number, and special character.",
+          "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
       });
     }
 
-    // Check if user already exists
-    const existingUser = await finduserbyemail(email);
+    // Check if email already exists
+    const existingUser = await finduserbyemail(cleanEmail);
 
     if (existingUser) {
       return res.status(409).json({
@@ -43,12 +47,13 @@ export const userRegister = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Save user
-    await createfield(name.trim(), email.trim(), hashedPassword);
+    await createfield(cleanName, cleanEmail, hashedPassword);
 
     return res.status(201).json({
       success: true,
       message: "User registered successfully.",
     });
+
   } catch (error) {
     console.error("Error in userRegister:", error);
 
@@ -66,8 +71,11 @@ export const userLogin = async (req, res) => {
       password = "",
     } = req.body;
 
+    // Clean user input
+    const cleanEmail = email.trim().toLowerCase();
+
     // Validate required fields
-    if (!email.trim() || !password.trim()) {
+    if (!cleanEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Please fill in all fields.",
@@ -75,7 +83,7 @@ export const userLogin = async (req, res) => {
     }
 
     // Find user
-    const user = await finduserbyemail(email);
+    const user = await finduserbyemail(cleanEmail);
 
     if (!user) {
       return res.status(401).json({
@@ -97,7 +105,6 @@ export const userLogin = async (req, res) => {
       });
     }
 
-    // Login successful
     return res.status(200).json({
       success: true,
       message: "Login successful.",
@@ -107,6 +114,7 @@ export const userLogin = async (req, res) => {
         email: user.email,
       },
     });
+
   } catch (error) {
     console.error("Error in userLogin:", error);
 
