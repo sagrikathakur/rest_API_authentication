@@ -7,7 +7,7 @@ const PASSWORD_REGEX =
 export const userRegister = async (req, res) => {
   try {
     const {
-      name: fullName = "",
+      fullName = "",
       email = "",
       password = "",
     } = req.body;
