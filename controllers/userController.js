@@ -1,40 +1,12 @@
-import bcrypt from "bcryptjs";
+import { hashPassword, comparePassword, generateToken } from "../utils/auth.js";
 import { createfield, finduserbyemail } from "../models/userModel.js";
-
-const PASSWORD_REGEX =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
 
 export const userRegister = async (req, res) => {
   try {
-    const {
-      fullName = "",
-      email = "",
-      password = "",
-    } = req.body;
-
-    // Clean user input
-    const cleanName = fullName.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Validate required fields
-    if (!cleanName || !cleanEmail || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please fill in all fields.",
-      });
-    }
-
-    // Validate password strength
-    if (!PASSWORD_REGEX.test(password)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
-      });
-    }
+    const { fullName, email, password } = req.body;
 
     // Check if email already exists
-    const existingUser = await finduserbyemail(cleanEmail);
+    const existingUser = await finduserbyemail(email);
 
     if (existingUser) {
       return res.status(409).json({
@@ -44,10 +16,10 @@ export const userRegister = async (req, res) => {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     // Save user
-    await createfield(cleanName, cleanEmail, hashedPassword);
+    await createfield(fullName, email, hashedPassword);
 
     return res.status(201).json({
       success: true,
@@ -56,7 +28,6 @@ export const userRegister = async (req, res) => {
 
   } catch (error) {
     console.error("Error in userRegister:", error);
-
     return res.status(500).json({
       success: false,
       message: "Internal server error.",
@@ -66,24 +37,10 @@ export const userRegister = async (req, res) => {
 
 export const userLogin = async (req, res) => {
   try {
-    const {
-      email = "",
-      password = "",
-    } = req.body;
-
-    // Clean user input
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Validate required fields
-    if (!cleanEmail || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please fill in all fields.",
-      });
-    }
+    const { email, password } = req.body;
 
     // Find user
-    const user = await finduserbyemail(cleanEmail);
+    const user = await finduserbyemail(email);
 
     if (!user) {
       return res.status(401).json({
@@ -93,7 +50,7 @@ export const userLogin = async (req, res) => {
     }
 
     // Compare passwords
-    const isPasswordMatch = await bcrypt.compare(
+    const isPasswordMatch = await comparePassword(
       password,
       user.password
     );
@@ -105,9 +62,13 @@ export const userLogin = async (req, res) => {
       });
     }
 
+    // Generate JWT access token
+    const accessToken = generateToken(user.id, user.role);
+
     return res.status(200).json({
       success: true,
       message: "Login successful.",
+      accessToken,
       user: {
         id: user.id,
         name: user.name,
@@ -117,7 +78,6 @@ export const userLogin = async (req, res) => {
 
   } catch (error) {
     console.error("Error in userLogin:", error);
-
     return res.status(500).json({
       success: false,
       message: "Internal server error.",
